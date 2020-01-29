@@ -711,7 +711,7 @@ static AppDelegate *appDelegate;
             for (NSString *line in pacArr)
             {
                 if ([line containsString:@"General List End"])
-                    continue;
+                    break;
                 if ([line isEqualToString:@""] == YES)
                     continue;
                 if ([line characterAtIndex:0] == '!')
