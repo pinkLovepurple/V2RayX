@@ -110,13 +110,34 @@ static AppDelegate *appDelegate;
             }
             [self->coreProcess setArguments:@[@"-config", @"stdin:"]];
             NSPipe* stdinpipe = [NSPipe pipe];
+            NSPipe* stoutpipe = [NSPipe pipe];
             [self->coreProcess setStandardInput:stdinpipe];
+            [self->coreProcess setStandardOutput:stoutpipe];
             NSData* configData = [NSJSONSerialization dataWithJSONObject:[self generateConfigFile] options:0 error:nil];
             [[stdinpipe fileHandleForWriting] writeData:configData];
             [self->coreProcess launch];
             [[stdinpipe fileHandleForWriting] closeFile];
             [self->coreProcess waitUntilExit];
             NSLog(@"core exit with code %d", [self->coreProcess terminationStatus]);
+            if ([self->coreProcess terminationStatus] != 0)
+            {
+                //TODO : v2ray-core 运行失败后的处理
+                NSFileHandle *filehandle = [stoutpipe fileHandleForReading];
+                NSData *data = [filehandle readDataToEndOfFile];
+                NSString *errstr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    [alert setMessageText: [[NSString alloc] initWithFormat:@"V2Ray Core ran but ended with an exception code: %d" ,[self->coreProcess terminationStatus]]];
+                    [alert setInformativeText:errstr];
+                    [alert addButtonWithTitle:@"OK"];
+                    [alert runModal];
+                    
+                    [self->_v2rayStatusItem setTitle:@"v2ray-core: failed"];
+                    [self->_enableV2rayItem setTitle:@"Load core"];
+                    [self->_statusBarItem setImage:[NSImage imageNamed:@"statusBarIcon_disabled"]];
+                    self->proxyState = NO;
+                });
+            }
         }
     });
     
@@ -642,10 +663,122 @@ static AppDelegate *appDelegate;
     }
     [_pacListMenu addItem:[NSMenuItem separatorItem]];
     [_pacListMenu addItem:_editPacMenuItem];
+    [_pacListMenu addItem:_updatePACItem];
 }
 
 - (IBAction)editPac:(id)sender {
     [[NSWorkspace sharedWorkspace] activateFileViewerSelectingURLs:@[[NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/Library/Application Support/V2RayX/pac/%@",NSHomeDirectory(), selectedPacFileName]]]];
+}
+
+- (IBAction)updatePAC:(id)sender {
+    NSString *pacTemplate = [[NSString alloc] initWithString:
+       @"var V2Ray = \"SOCKS5 127.0.0.1:%ld; SOCKS 127.0.0.1:%ld; DIRECT;\";\n"
+         "\n"
+         "var domains = [\n"
+         "%@"
+         "];\n\n"
+         "function FindProxyForURL(url, host) {\n"
+         "    for (var i = domains.length - 1; i >= 0; i--) {\n"
+         "        if (dnsDomainIs(host, domains[i])) {\n"
+         "            return V2Ray;\n"
+         "        }\n"
+         "    }\n"
+         "    return \"DIRECT\";\n"
+         "}\n"
+       ];
+    NSURL *pacUrl = [[NSURL alloc] initWithString:@"https://bitbucket.org/gfwlist/gfwlist/raw/HEAD/gfwlist.txt"];
+    NSMutableURLRequest *pacReq = [NSMutableURLRequest requestWithURL:pacUrl];
+    pacReq.timeoutInterval = 15;
+    NSURLSession * session = [NSURLSession sharedSession];
+    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:pacReq completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        if (error == nil)
+        {
+            NSData *base64data = [[NSData alloc] initWithBase64EncodedData:data options:(0)];
+            NSString *pacContent = [[NSString alloc] initWithData:base64data encoding:NSUTF8StringEncoding];
+            if([pacContent isEqualToString:@""] == YES)
+            {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    [alert setMessageText:@"Error to Decode PAC"];
+                    [alert addButtonWithTitle:@"OK"];
+                    [alert setInformativeText: @"V2rayX cannot decode the PAC fetched online now, or it has a wrong format."];
+                    [alert runModal];
+                });
+                return;
+            }
+            NSArray *pacArr = [pacContent componentsSeparatedByString:@"\n"];
+            NSMutableArray *finalArr = [[NSMutableArray alloc] init];
+            for (NSString *line in pacArr)
+            {
+                if ([line containsString:@"General List End"])
+                    continue;
+                if ([line isEqualToString:@""] == YES)
+                    continue;
+                if ([line characterAtIndex:0] == '!')
+                    continue;
+                if ([line characterAtIndex:0] == '.')
+                {
+                    NSString *line2 = [line substringWithRange:NSMakeRange(1, line.length)];
+                    line2 = [[NSString alloc] initWithFormat:@"\"%@\"", line2];
+                    [finalArr addObject:line2];
+                    continue;
+                }
+                if ([line containsString:@"|https://"] == YES)
+                    continue;
+                if ([line containsString:@"|http://"] == YES)
+                    continue;
+                
+                NSString *line2 = [line substringWithRange:NSMakeRange(3, line.length)];
+                line2 = [[NSString alloc] initWithFormat:@"\"%@\"", line2];
+                [finalArr addObject:line2];
+            }
+            NSMutableString *pacFileContent = [[NSMutableString alloc] init];
+            for (NSString *line in finalArr)
+                [pacFileContent appendString:line];
+            
+            NSString *pacjsContent = [[NSString alloc] initWithFormat:pacTemplate, self.localPort, self.localPort, pacFileContent];
+            NSDateFormatter *filedate = [[NSDateFormatter alloc] init];
+            [filedate setDateFormat:@"YYYYMMdd"];
+            NSString *pacfilename = [[NSString alloc] initWithFormat:@"pac-%@.js", [filedate stringFromDate:[NSDate date]]];
+            NSString* pacPath = [NSString stringWithFormat:@"%@/Library/Application Support/V2RayX/pac/%@",NSHomeDirectory(), pacfilename];
+            
+            FILE *pacHDL = fopen([pacPath UTF8String], "wt");
+            if (pacHDL == NULL)
+            {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    [alert setMessageText:@"Cannot Write to Disk"];
+                    [alert addButtonWithTitle:@"OK"];
+                    [alert setInformativeText: @"V2rayX cannot save the latest PAC to local now."];
+                    [alert runModal];
+                });
+                return;
+            }
+            fprintf(pacHDL, "%s", [pacjsContent UTF8String]);
+            fclose(pacHDL);
+        
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSAlert *alert = [[NSAlert alloc] init];
+                [alert setInformativeText: [[NSString alloc] initWithFormat:@"You may manually select the pac file generated.\n\nFilename:%@", pacfilename]];
+                [alert setMessageText:@"Operation Success"];
+                [alert addButtonWithTitle:@"OK"];
+                [alert runModal];
+            });
+        }
+        else
+        {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSAlert *alert = [[NSAlert alloc] init];
+                [alert setMessageText:@"Cannot Access the Internet"];
+                [alert addButtonWithTitle:@"OK"];
+                [alert setInformativeText: @"V2rayX cannot fetch the PAC file now, please check network connection or proxy status"];
+                [alert runModal];
+            });
+            return;
+        }
+    }];
+    
+    [dataTask resume];
 }
 
 - (IBAction)resetPac:(id)sender {

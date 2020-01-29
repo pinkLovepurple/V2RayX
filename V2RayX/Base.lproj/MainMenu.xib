@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14460.31"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -14,17 +14,21 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customObject id="Voe-Tx-rLC" customClass="AppDelegate">
             <connections>
+                <outlet property="aboutItem" destination="esg-xy-8ve" id="a7c-MP-qUB"/>
                 <outlet property="authMenu" destination="vXy-mo-Nh0" id="AA1-I3-X0A"/>
                 <outlet property="editPacMenuItem" destination="3NY-51-bgh" id="dgA-Xq-mKn"/>
                 <outlet property="enableV2rayItem" destination="I9I-uu-xak" id="b3P-ct-RqE"/>
                 <outlet property="globalModeItem" destination="12u-76-Ytb" id="RA8-m2-Iv6"/>
+                <outlet property="helpItem" destination="Yq1-i5-ecF" id="KBh-0V-VLs"/>
                 <outlet property="manualModeItem" destination="P4q-kj-6fs" id="5XH-9p-w3e"/>
                 <outlet property="pacListMenu" destination="yno-KX-HOj" id="qzq-pN-ala"/>
                 <outlet property="pacModeItem" destination="Cm9-3e-L2z" id="IvE-nJ-dW0"/>
+                <outlet property="quitItem" destination="8f2-cF-RxH" id="paH-Ob-QrH"/>
                 <outlet property="ruleSetMenuList" destination="8Ld-d4-m0U" id="DNS-66-cYT"/>
                 <outlet property="serverListMenu" destination="eqU-gH-G4L" id="unc-2a-DIW"/>
                 <outlet property="serversItem" destination="3wi-Co-2Kd" id="kKi-8l-dDJ"/>
                 <outlet property="statusBarMenu" destination="yZm-2L-r3v" id="3iW-vb-TOn"/>
+                <outlet property="updatePACItem" destination="ayN-Jm-TXv" id="EqR-TV-yYC"/>
                 <outlet property="updateServerItem" destination="C3a-eC-bFQ" id="3kY-g6-FNX"/>
                 <outlet property="upgradeMenuItem" destination="29h-Cl-9kt" id="Fk0-Xq-OK0"/>
                 <outlet property="v2rayRulesItem" destination="bUi-AV-IfA" id="p4V-ny-gh7"/>
@@ -798,6 +802,12 @@
             <modifierMask key="keyEquivalentModifierMask"/>
             <connections>
                 <action selector="editPac:" target="Voe-Tx-rLC" id="4jX-Hv-SpU"/>
+            </connections>
+        </menuItem>
+        <menuItem title="Update pac Online" id="ayN-Jm-TXv">
+            <modifierMask key="keyEquivalentModifierMask"/>
+            <connections>
+                <action selector="updatePAC:" target="Voe-Tx-rLC" id="BAr-Nf-g58"/>
             </connections>
         </menuItem>
         <menuItem title="Update subscription" id="C3a-eC-bFQ">

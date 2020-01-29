@@ -95,6 +95,10 @@ int runCommandLine(NSString* launchPath, NSArray* arguments);
 @property (weak, nonatomic) IBOutlet NSMenu *serverListMenu;
 @property (weak, nonatomic) IBOutlet NSMenu *pacListMenu;
 @property (weak) IBOutlet NSMenuItem *editPacMenuItem;
+@property (weak, nonatomic) IBOutlet NSMenuItem *aboutItem;
+@property (weak, nonatomic) IBOutlet NSMenuItem *quitItem;
+@property (weak, nonatomic) IBOutlet NSMenuItem *helpItem;
+@property (weak, nonatomic) IBOutlet NSMenuItem *updatePACItem;
 
 @property (weak) IBOutlet NSMenu *authMenu;
 

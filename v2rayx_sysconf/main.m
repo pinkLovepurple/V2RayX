@@ -11,7 +11,7 @@
 
 #define INFO "v2rayx_sysconf\n the helper tool for V2RayX, modified from clowwindy's shadowsocks_sysconf.\nusage: v2rayx_sysconf [options]\noff\t turn off proxy\nauto\t auto proxy change\nglobal port \t global proxy at the specified port number\n"
 
-int main(int argc, const char * argv[])
+int main(int argc, const char * argv[]) 
 {
     if (argc < 2 || argc >4) {
         printf(INFO);

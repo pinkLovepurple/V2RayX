@@ -14,26 +14,14 @@ if [ "$VERSION" != "$existingVersion" ]; then
     getCore=0
     mkdir -p v2ray-core-bin
     cd v2ray-core-bin
-    curl -s -L -o v2ray-macos.zip https://github.com/v2ray/v2ray-core/releases/download/v${VERSION}/v2ray-macos.zip
+    #curl -s -L -o v2ray-macos.zip https://github.com/v2ray/v2ray-core/releases/download/v${VERSION}/v2ray-macos.zip
     if [[ $? == 0 ]]; then
         unzip -o v2ray-macos.zip
         getCore=1
     else
         unzip -o ~/Downloads/v2ray-macos.zip
-        if [[ $? != 0 ]]; then
-            getCore=0
-        else
-            chmod +x v2ray-${VERSION}-macos/v2ray
-            output=$(v2ray-${VERSION}-macos/v2ray --version)
-            existingVersion=${output:6:${#VERSION}}
-            if [ "$VERSION" != "$existingVersion" ]; then
-                echo "${RED}v2ray-macos.zip in the Downloads folder does not contain version ${VERSION}."
-                echo "下载文件夹里的v2ray-macos.zip不是${VERSION}版本。${NORMAL}"
-                getCore=0
-            else
-                getCore=1
-            fi
-        fi
+        getCore=1
+
     fi
     if [[ $getCore == 0 ]]; then
         echo "${RED}download failed!"
@@ -43,7 +31,7 @@ if [ "$VERSION" != "$existingVersion" ]; then
     fi
     chmod +x ./v2ray
     chmod +x ./v2ctl
-    rm -r v2ray-*
+
 else
     exit 0
 fi

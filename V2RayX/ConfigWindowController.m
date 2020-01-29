@@ -186,6 +186,10 @@
     }
     else if ([sender selectedSegment] == 2) {
         // share server
+        NSLog(@"click shareSegment");
+        [NSMenu popUpContextMenu:_shareMenu withEvent:[NSApp currentEvent] forView:sender];
+        
+        
     } else if ([sender selectedSegment] == 3) {
         // duplicate
         if (_selectedServerIndex >= 0 && _selectedServerIndex < [_profiles count]) {
@@ -414,5 +418,13 @@
 - (IBAction)showLog:(id)sender {
     [_appDelegate viewLog:sender];
 }
+
+- (IBAction)shareLinks:(id)sender {
+    
+}
+
+- (IBAction)shareQRcode:(id)sender {
+}
+
 
 @end

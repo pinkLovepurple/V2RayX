@@ -52,4 +52,6 @@
 
 @property (weak) IBOutlet NSTextField *versionField;
 
+@property (weak, nonatomic) IBOutlet NSMenu *shareMenu;
+
 @end
