@@ -671,29 +671,32 @@ static AppDelegate *appDelegate;
 }
 
 - (IBAction)updatePAC:(id)sender {
-    NSString *pacTemplate = [[NSString alloc] initWithString:
-       @"var V2Ray = \"SOCKS5 127.0.0.1:%ld; SOCKS 127.0.0.1:%ld; DIRECT;\";\n"
-         "\n"
-         "var domains = [\n"
-         "%@"
-         "];\n\n"
-         "function FindProxyForURL(url, host) {\n"
-         "    for (var i = domains.length - 1; i >= 0; i--) {\n"
-         "        if (dnsDomainIs(host, domains[i])) {\n"
-         "            return V2Ray;\n"
-         "        }\n"
-         "    }\n"
-         "    return \"DIRECT\";\n"
-         "}\n"
-       ];
-    NSURL *pacUrl = [[NSURL alloc] initWithString:@"https://bitbucket.org/gfwlist/gfwlist/raw/HEAD/gfwlist.txt"];
+    NSString *pacTemplate = @"var V2Ray = \"SOCKS5 127.0.0.1:%ld; SOCKS 127.0.0.1:%ld; DIRECT;\";\n"
+    "\n"
+    "var domains = [\n"
+    "%@"
+    "];\n\n"
+    "function FindProxyForURL(url, host) {\n"
+    "    for (var i = domains.length - 1; i >= 0; i--) {\n"
+    "        if (dnsDomainIs(host, domains[i])) {\n"
+    "            return V2Ray;\n"
+    "        }\n"
+    "    }\n"
+    "    return \"DIRECT\";\n"
+    "}\n";
+    NSURL *pacUrl = [NSURL URLWithString:@"https://bitbucket.org/gfwlist/gfwlist/raw/HEAD/gfwlist.txt"];
     NSMutableURLRequest *pacReq = [NSMutableURLRequest requestWithURL:pacUrl];
-    pacReq.timeoutInterval = 15;
+    pacReq.timeoutInterval = 60;
+    pacReq.HTTPMethod = @"GET";
     NSURLSession * session = [NSURLSession sharedSession];
     NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:pacReq completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
         if (error == nil)
         {
-            NSData *base64data = [[NSData alloc] initWithBase64EncodedData:data options:(0)];
+            NSLog(@"%@", [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+            NSMutableString *base64str = [[NSMutableString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            [base64str replaceOccurrencesOfString:@"\n" withString:@"" options:NSLiteralSearch range:NSMakeRange(0, base64str
+                                                                                                                 .length)];
+            NSData *base64data = [[NSData alloc] initWithBase64EncodedString:base64str options:0];
             NSString *pacContent = [[NSString alloc] initWithData:base64data encoding:NSUTF8StringEncoding];
             if([pacContent isEqualToString:@""] == YES)
             {
@@ -716,20 +719,28 @@ static AppDelegate *appDelegate;
                     continue;
                 if ([line characterAtIndex:0] == '!')
                     continue;
+                if ([line characterAtIndex:0] == '[')
+                    continue;
                 if ([line characterAtIndex:0] == '.')
                 {
-                    NSString *line2 = [line substringWithRange:NSMakeRange(1, line.length)];
-                    line2 = [[NSString alloc] initWithFormat:@"\"%@\"", line2];
+                    NSString *line2 = [line substringWithRange:NSMakeRange(1, line.length-1)];
+                    line2 = [[NSString alloc] initWithFormat:@"\t\"%@\",\n", line2];
                     [finalArr addObject:line2];
                     continue;
                 }
-                if ([line containsString:@"|https://"] == YES)
+                if ([line characterAtIndex:0] == '@')
+                {
+                    NSMutableString *line2 = [[NSMutableString alloc] initWithString:line];
+                    [line2 replaceOccurrencesOfString:@"@" withString:@"" options:NSLiteralSearch range:NSMakeRange(0, line2.length)];
+                    [line2 replaceOccurrencesOfString:@"|" withString:@"" options:NSLiteralSearch range:NSMakeRange(0, line2.length)];
+                    line2 = [[NSMutableString alloc] initWithFormat:@"\t\"%@\",\n", line2];
+                    [finalArr addObject:line2];
                     continue;
-                if ([line containsString:@"|http://"] == YES)
-                    continue;
-                
-                NSString *line2 = [line substringWithRange:NSMakeRange(3, line.length)];
-                line2 = [[NSString alloc] initWithFormat:@"\"%@\"", line2];
+                }
+
+                NSMutableString *line2 = [[NSMutableString alloc] initWithString:line];
+                [line2 replaceOccurrencesOfString:@"|" withString:@"" options:NSLiteralSearch range:NSMakeRange(0, line2.length)];
+                line2 = [[NSMutableString alloc] initWithFormat:@"\t\"%@\",\n", line2];
                 [finalArr addObject:line2];
             }
             NSMutableString *pacFileContent = [[NSMutableString alloc] init];
@@ -763,6 +774,7 @@ static AppDelegate *appDelegate;
                 [alert setMessageText:@"Operation Success"];
                 [alert addButtonWithTitle:@"OK"];
                 [alert runModal];
+                [self updatePacMenuList];
             });
         }
         else
